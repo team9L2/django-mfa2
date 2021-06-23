@@ -187,6 +187,7 @@ function some_func() {
 * [swainn](https://github.com/swainn)
 * [unramk](https://github.com/unramk)
 * [willingham](https://github.com/willingham)
+* [xi](https://github.com/xi)
 
 
  # Security contact information
