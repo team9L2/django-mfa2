@@ -25,12 +25,13 @@ def recheck(request):
     context = csrf(request)
     context["mode"]="recheck"
     if request.method == "POST":
-        if verify_login(request,request.user.username, token=request.POST["otp"]):
-            import time
-            request.session["mfa"]["rechecked_at"] = time.time()
-            return HttpResponse(simplejson.dumps({"recheck": True}), content_type="application/json")
-        else:
+        if not verify_login(
+            request, request.user.username, token=request.POST["otp"]
+        ):
             return HttpResponse(simplejson.dumps({"recheck": False}), content_type="application/json")
+        import time
+        request.session["mfa"]["rechecked_at"] = time.time()
+        return HttpResponse(simplejson.dumps({"recheck": True}), content_type="application/json")
     return render(request,"TOTP/recheck.html", context)
 
 @never_cache

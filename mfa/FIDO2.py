@@ -35,11 +35,15 @@ def getServer():
 def begin_registeration(request):
     """Starts registering a new FIDO Device, called from API"""
     server = getServer()
-    registration_data, state = server.register_begin({
-        u'id': request.user.username.encode("utf8"),
-        u'name': (request.user.first_name + " " + request.user.last_name),
-        u'displayName': request.user.username,
-    }, getUserCredentials(request.user.username))
+    registration_data, state = server.register_begin(
+        {
+            u'id': request.user.username.encode("utf8"),
+            u'name': f"{request.user.first_name} {request.user.last_name}",
+            u'displayName': request.user.username,
+        },
+        getUserCredentials(request.user.username),
+    )
+
     request.session['fido_state'] = state
 
     return HttpResponse(cbor.encode(registration_data), content_type = 'application/octet-stream')
@@ -84,10 +88,10 @@ def start(request):
 
 
 def getUserCredentials(username):
-    credentials = []
-    for uk in User_Keys.objects.filter(username = username, key_type = "FIDO2"):
-        credentials.append(AttestedCredentialData(websafe_decode(uk.properties["device"])))
-    return credentials
+    return [
+        AttestedCredentialData(websafe_decode(uk.properties["device"]))
+        for uk in User_Keys.objects.filter(username=username, key_type="FIDO2")
+    ]
 
 
 def auth(request):
@@ -161,7 +165,7 @@ def authenticate_complete(request):
                         authenticated = request.user.is_authenticated()
                     if not authenticated:
                         res = login(request)
-                        if not "location" in res: return reset_cookie(request)
+                        if "location" not in res: return reset_cookie(request)
                         return HttpResponse(simplejson.dumps({'status': "OK", "redirect": res["location"]}),
                                             content_type = "application/json")
                     return HttpResponse(simplejson.dumps({'status': "OK"}),

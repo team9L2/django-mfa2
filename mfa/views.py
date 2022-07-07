@@ -30,7 +30,7 @@ def verify(request,username):
     request.session["base_username"] = username
     #request.session["base_password"] = password
     keys=User_Keys.objects.filter(username=username,enabled=1)
-    methods=list(set([k.key_type for k in keys]))
+    methods = list({k.key_type for k in keys})
 
     if "Trusted Device" in methods and not request.session.get("checked_trusted_device",False):
         if TrustedDevice.verify(request):
@@ -38,7 +38,7 @@ def verify(request,username):
         methods.remove("Trusted Device")
     request.session["mfa_methods"] = methods
     if len(methods)==1:
-        return HttpResponseRedirect(reverse(methods[0].lower()+"_auth"))
+        return HttpResponseRedirect(reverse(f"{methods[0].lower()}_auth"))
     return show_methods(request)
 
 def show_methods(request):
@@ -58,15 +58,14 @@ def login(request):
 @login_required
 def delKey(request):
     key=User_Keys.objects.get(id=request.GET["id"])
-    if key.username == request.user.username:
-        key.delete()
-        return HttpResponse("Deleted Successfully")
-    else:
+    if key.username != request.user.username:
         return HttpResponse("Error: You own this token so you can't delete it")
+    key.delete()
+    return HttpResponse("Deleted Successfully")
 
 def __get_callable_function__(func_path):
     import importlib
-    if not '.' in func_path:
+    if '.' not in func_path:
         raise Exception("class Name should include modulename.classname")
 
     parsed_str = func_path.split(".")
@@ -81,16 +80,14 @@ def __get_callable_function__(func_path):
 def toggleKey(request):
     id=request.GET["id"]
     q=User_Keys.objects.filter(username=request.user.username, id=id)
-    if q.count()==1:
-        key=q[0]
-        if not key.key_type in settings.MFA_HIDE_DISABLE:
-            key.enabled=not key.enabled
-            key.save()
-            return HttpResponse("OK")
-        else:
-            return HttpResponse("You can't change this method.")
-    else:
+    if q.count() != 1:
         return HttpResponse("Error")
+    key=q[0]
+    if key.key_type in settings.MFA_HIDE_DISABLE:
+        return HttpResponse("You can't change this method.")
+    key.enabled=not key.enabled
+    key.save()
+    return HttpResponse("OK")
 
 def goto(request,method):
-    return HttpResponseRedirect(reverse(method.lower()+"_auth"))
+    return HttpResponseRedirect(reverse(f"{method.lower()}_auth"))
