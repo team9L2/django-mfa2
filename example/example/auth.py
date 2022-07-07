@@ -8,11 +8,9 @@ def loginView(request):
     if request.method=="POST":
         username=request.POST["username"]
         password=request.POST["password"]
-        user=authenticate(username=username,password=password)
-        if user:
+        if user := authenticate(username=username, password=password):
             from mfa.helpers import has_mfa
-            res = has_mfa(username = username, request = request)  # has_mfa returns false or HttpResponseRedirect
-            if res:
+            if res := has_mfa(username=username, request=request):
                 return res
             return create_session(request,user.username)
         context["invalid"]=True

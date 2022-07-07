@@ -10,10 +10,11 @@ def has_mfa(request,username):
     return False
 
 def is_mfa(request,ignore_methods=[]):
-    if request.session.get("mfa",{}).get("verified",False):
-        if not request.session.get("mfa",{}).get("method",None) in ignore_methods:
-            return True
-    return False
+    return bool(
+        request.session.get("mfa", {}).get("verified", False)
+        and request.session.get("mfa", {}).get("method", None)
+        not in ignore_methods
+    )
 
 def recheck(request):
     method=request.session.get("mfa",{}).get("method",None)

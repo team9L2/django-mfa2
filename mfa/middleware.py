@@ -9,5 +9,9 @@ def process(request):
     if now >= next_check:
         method=request.session["mfa"]["method"]
         path = request.META["PATH_INFO"]
-        return HttpResponseRedirect(reverse(method+"_auth")+"?next=%s"%(settings.BASE_URL + path).replace("//", "/"))
+        return HttpResponseRedirect(
+            reverse(f"{method}_auth")
+            + f'?next={(settings.BASE_URL + path).replace("//", "/")}'
+        )
+
     return None

@@ -10,8 +10,11 @@ from django.utils import timezone
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     x=''.join(random.choice(chars) for _ in range(size))
-    if not User_Keys.objects.filter(properties__shas="$.key="+x).exists(): return x
-    else: return id_generator(size,chars)
+    return (
+        id_generator(size, chars)
+        if User_Keys.objects.filter(properties__shas=f"$.key={x}").exists()
+        else x
+    )
 
 def getUserAgent(request):
     id=id=request.session.get("td_id",None)
@@ -56,13 +59,14 @@ def getCookie(request):
 
 def add(request):
     context=csrf(request)
-    if request.method=="GET":
-        return render(request,"TrustedDevices/Add.html",context)
-    else:
+    if request.method != "GET":
         key=request.POST["key"].replace("-","").replace(" ","").upper()
         context["username"] = request.POST["username"]
         context["key"] = request.POST["key"]
-        trusted_keys=User_Keys.objects.filter(username=request.POST["username"],properties__has="$.key="+key)
+        trusted_keys = User_Keys.objects.filter(
+            username=request.POST["username"], properties__has=f"$.key={key}"
+        )
+
         cookie=False
         if trusted_keys.exists():
             tk=trusted_keys[0]
@@ -82,7 +86,7 @@ def add(request):
         else:
             context["invalid"]="The username or key is wrong, please check and try again."
 
-        return  render(request,"TrustedDevices/Add.html", context)
+    return render(request,"TrustedDevices/Add.html",context)
 
 def start(request):
     if User_Keys.objects.filter(username=request.user.username,key_type="Trusted Device").count()>= 2:
@@ -96,7 +100,7 @@ def start(request):
         td.save()
         request.session["td_id"]=td.id
     try:
-        if td==None: td=User_Keys.objects.get(id=request.session["td_id"])
+        if td is None: td=User_Keys.objects.get(id=request.session["td_id"])
         context={"key":td.properties["key"]}
     except:
         del request.session["td_id"]
